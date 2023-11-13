@@ -11,15 +11,19 @@ def main():
 
 def get_foods():
     food_data = []
+    excluded_categories = ['https://www.mcdonalds.com.br/cardapio/mc-lanche-feliz',
+                           'https://www.mcdonalds.com.br/cardapio/mc-oferta',
+                           'https://www.mcdonalds.com.br/cardapio/mequi-box']
 
     options = webdriver.ChromeOptions()
-    # options.add_argument('--headless=new')
+    options.add_argument('--headless=new')
 
     driver = webdriver.Chrome(options=options)
     driver.get('https://www.mcdonalds.com.br/cardapio')
     wait = WebDriverWait(driver, 10)
 
     for menu_index in range(2, 15):
+
 
         link = wait.until(
             EC.presence_of_element_located((By.XPATH, f'//*[@id="categoriesMenu"]/div/div[{menu_index}]/a'))
@@ -29,17 +33,20 @@ def get_foods():
         #         By.XPATH, f'//*[@id="categoriesMenu"]/div/div[{menu_index}]/a'
         #     )
 
+        if(link.get_attribute('href') in excluded_categories):
+            continue
+        
+
         link.click()
         sleep(2)
-        item_links = []
+        
+        items = wait.until(EC.presence_of_all_elements_located((By.CLASS_NAME, 'mcd-category-detail__item')))
+        
+        for item in range(1, len(items)+1):
+            
+            wait.until(EC.presence_of_element_located((By.XPATH, f'//*[@id="mcd-content"]/div/div/nav/div/nav/div/div[{item}]/a')))\
+            .click()
 
-        for item in driver.find_elements(By.CLASS_NAME, 'mcd-category-detail__item'):
-            print(item.get_attribute('href'))
-            item_links.append(item.get_attribute('href'))
-
-        for item_link in item_links:
-
-            driver.get(item_link)
             meal = {}
             details = wait.until(EC.presence_of_element_located(
                ( By.CLASS_NAME, 'mcd-product-detail__summary')))
@@ -59,9 +66,11 @@ def get_foods():
                 By.XPATH, '//*[@id="mcd-content"]/div/article/div[2]/div/section[1]/div/div/div[2]/div[7]/div/div[2]/span').text
             food_data.append(meal)
             print(meal)
-            driver.close()
+            driver.back()
 
-        driver.get('https://www.mcdonalds.com.br/cardapio')
+        wait.until(
+            EC.presence_of_element_located((By.XPATH, f'//*[@id="categoriesMenu"]/div/div[1]/a'))
+            )
 
     return food_data
 
